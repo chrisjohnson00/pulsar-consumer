@@ -18,14 +18,16 @@ def main():
     client = pulsar.Client(f"pulsar://{get_config('PULSAR_SERVER')}")
     consumer = client.subscribe(get_config('PULSAR_TOPIC'), get_config('PULSAR_SUBSCRIPTION'),
                                 consumer_type=pulsar.ConsumerType.Shared)
+    sleep_time = int(get_config('SLEEP_TIME_PER_MESSAGE'))
 
     while True:
         msg = consumer.receive()
         try:
             # decode from bytes, encode with backslashes removed, decode back to a string, then load it as a dict
             message_body = loads(msg.data().decode().encode('latin1', 'backslashreplace').decode('unicode-escape'))
-            logger.debug("Message body", extra={'message_body': message_body})
+            logger.info("Message received", extra={'message_body': message_body})
             consumer.acknowledge(msg)
+            time.sleep(sleep_time)
         except:  # noqa: E722
             # Message failed to be processed
             consumer.negative_acknowledge(msg)
@@ -34,18 +36,18 @@ def main():
 
 
 def main_producer():
-    logger.info("Starting Producer")
+    logger.info("Starting Producer!!")
     topic = get_config("PULSAR_TOPIC")
     pulsar_server = get_config('PULSAR_SERVER')
     client = pulsar.Client(f"pulsar://{pulsar_server}")
     producer = client.create_producer(topic)
     duration = 3600
+    sleep_time = int(get_config('SLEEP_TIME_PER_MESSAGE'))
     for i in range(duration):
         message = {'number': random.randint(0, 10000)}
         producer.send(dumps(message).encode('utf-8'))
-        logger.info("Notification sent",
-                    extra={'message_body': message, 'topic': topic})
-        time.sleep(1)
+        logger.info("Message sent", extra={'message_body': message, 'topic': topic})
+        time.sleep(sleep_time)
     client.close()
 
 
